@@ -85,6 +85,22 @@ block main
 
             tr
               td(colspan="4")
+                b Đơn hàng
+
+            tr(data-name="orders_view")
+              td Xem
+              each item in roles1
+                td.text-center
+                  input(type="checkbox")
+
+            tr(data-name="orders_edit")
+              td Cập nhật trạng thái
+              each item in roles1
+                td.text-center
+                  input(type="checkbox")
+
+            tr
+              td(colspan="4")
                 b Tài khoản và nhóm quyền
 
             tr(data-name="roles_view")

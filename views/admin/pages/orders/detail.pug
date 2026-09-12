@@ -1,0 +1,148 @@
+extends ../../layouts/default.pug
+include ../../mixins/alert.pug
+
+block main
+  if(roles.permissions.includes("orders_view"))
+    -
+      const statusMap = {
+        pending: { label: "Chờ xác nhận", class: "badge-warning" },
+        confirmed: { label: "Đã xác nhận", class: "badge-info" },
+        shipping: { label: "Đang giao", class: "badge-primary" },
+        delivered: { label: "Đã giao", class: "badge-success" },
+        cancelled: { label: "Đã hủy", class: "badge-danger" }
+      }
+      const payStatusMap = {
+        unpaid: { label: "Chưa thanh toán", class: "badge-secondary" },
+        paid: { label: "Đã thanh toán", class: "badge-success" },
+        failed: { label: "Thất bại", class: "badge-danger" },
+        refunded: { label: "Hoàn tiền", class: "badge-dark" }
+      }
+      const payMethodMap = {
+        cod: "Thanh toán khi nhận hàng (COD)",
+        vnpay: "VNPay"
+      }
+      const st = statusMap[order.status] || { label: order.status || "—", class: "badge-light" }
+      const ps = payStatusMap[order.paymentStatus] || { label: order.paymentStatus || "—", class: "badge-light" }
+      const pm = payMethodMap[order.paymentMethod] || (order.paymentMethod || "—")
+      const orderCode = order._id.toString().slice(-6).toUpperCase()
+
+    .admin-page
+      +alert(success, error)
+      .d-flex.justify-content-between.align-items-center.flex-wrap.mb-3
+        h1.page-title.mb-0 Chi tiết đơn hàng ##{orderCode}
+        a.btn.btn-secondary.btn-sm(href=`${prefixAdmin}/orders`) ← Quay lại
+
+      .row
+        .col-lg-6.mb-3
+          .card.h-100
+            .card-header Thông tin khách hàng
+            .card-body
+              table.table.table-bordered.mb-0
+                tbody
+                  tr
+                    td(width="40%") Họ tên
+                    td
+                      strong= order.userInfo ? order.userInfo.fullName : "—"
+                  tr
+                    td Số điện thoại
+                    td
+                      strong= order.userInfo ? order.userInfo.phone : "—"
+                  tr
+                    td Địa chỉ
+                    td
+                      strong= order.userInfo ? order.userInfo.address : "—"
+                  if order.user_id
+                    tr
+                      td User ID
+                      td
+                        code= order.user_id
+
+        .col-lg-6.mb-3
+          .card.h-100
+            .card-header Trạng thái & thanh toán
+            .card-body
+              table.table.table-bordered.mb-3
+                tbody
+                  tr
+                    td(width="40%") Mã đơn
+                    td
+                      strong ##{orderCode}
+                  tr
+                    td Ngày đặt
+                    td
+                      if order.createdAt
+                        | #{moment(order.createdAt).format("DD/MM/YYYY HH:mm")}
+                      else
+                        | —
+                  tr
+                    td Phương thức
+                    td= pm
+                  tr
+                    td Thanh toán
+                    td
+                      span(class=`badge ${ps.class}`)= ps.label
+                  tr
+                    td Trạng thái đơn
+                    td
+                      span(class=`badge ${st.class}`)= st.label
+                  if order.vnpayTxnRef
+                    tr
+                      td Mã GD VNPay
+                      td
+                        code= order.vnpayTxnRef
+
+              if(roles.permissions.includes("orders_edit"))
+                form(
+                  action=`${prefixAdmin}/orders/change-status/${order.id}?_method=PATCH`
+                  method="POST"
+                )
+                  .form-group.mb-2
+                    label(for="order-status") Cập nhật trạng thái
+                    select#order-status.form-control(name="status")
+                      option(value="pending" selected=(order.status === "pending")) Chờ xác nhận
+                      option(value="confirmed" selected=(order.status === "confirmed")) Đã xác nhận
+                      option(value="shipping" selected=(order.status === "shipping")) Đang giao
+                      option(value="delivered" selected=(order.status === "delivered")) Đã giao
+                      option(value="cancelled" selected=(order.status === "cancelled")) Đã hủy
+                  button.btn.btn-primary.btn-sm(type="submit") Lưu trạng thái
+
+      .card.mb-3
+        .card-header Sản phẩm trong đơn
+        .card-body
+          .table-responsive
+            table.table.table-hover.table-sm.mb-0
+              thead.thead-dark
+                tr
+                  th.text-center STT
+                  th.text-center Ảnh
+                  th Tên sản phẩm
+                  th.text-center Đơn giá
+                  th.text-center SL
+                  th.text-center Thành tiền
+              tbody
+                if order.products && order.products.length > 0
+                  each item, index in order.products
+                    tr
+                      td.text-center= index + 1
+                      td.text-center
+                        if item.productInfo && item.productInfo.thumbnail
+                          img.img-thumbnail(
+                            src=item.productInfo.thumbnail
+                            alt=item.productInfo.title || ""
+                            width="72"
+                          )
+                        else
+                          span.text-muted —
+                      td= item.productInfo ? item.productInfo.title : "Sản phẩm đã xóa"
+                      td.text-center.text-nowrap= (item.pricenew != null ? item.pricenew : item.price) + " ₫"
+                      td.text-center= item.quantity
+                      td.text-center.text-nowrap
+                        strong= (item.totalPrice != null ? item.totalPrice : 0) + " ₫"
+                else
+                  tr
+                    td.text-center.text-muted(colspan="6") Không có sản phẩm.
+
+          .d-flex.justify-content-end.mt-3
+            h4.mb-0
+              | Tổng đơn: 
+              strong.text-danger= (order.totalPrice != null ? order.totalPrice : 0) + " ₫"

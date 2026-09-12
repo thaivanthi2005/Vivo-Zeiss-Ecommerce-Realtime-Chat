@@ -4,6 +4,28 @@ include ../../mixins/alert.pug
 
 block main
   +alert(success, error)
+  -
+    const statusMap = {
+      pending: { label: "Chờ xác nhận", class: "badge-warning" },
+      confirmed: { label: "Đã xác nhận", class: "badge-info" },
+      shipping: { label: "Đang giao", class: "badge-primary" },
+      delivered: { label: "Đã giao", class: "badge-success" },
+      cancelled: { label: "Đã hủy", class: "badge-danger" }
+    }
+    const payStatusMap = {
+      unpaid: { label: "Chưa thanh toán", class: "badge-secondary" },
+      paid: { label: "Đã thanh toán", class: "badge-success" },
+      failed: { label: "Thất bại", class: "badge-danger" },
+      refunded: { label: "Hoàn tiền", class: "badge-dark" }
+    }
+    const payMethodMap = {
+      cod: "Thanh toán khi nhận hàng (COD)",
+      vnpay: "VNPay"
+    }
+    const st = statusMap[order.status] || { label: order.status || "—", class: "badge-light" }
+    const ps = payStatusMap[order.paymentStatus] || { label: order.paymentStatus || "—", class: "badge-light" }
+    const pm = payMethodMap[order.paymentMethod] || (order.paymentMethod || "—")
+
   .container.page-shell
     .row
       .col-12
@@ -15,9 +37,13 @@ block main
           .d-flex.justify-content-between.align-items-center.flex-wrap.gap-2.mb-3
             div
               h4.mb-1 Mã đơn: ##{order._id.toString().slice(-6).toUpperCase()}
-              p.mb-0.text-muted
+              p.mb-2.text-muted
                 | Ngày đặt: 
                 strong= new Date(order.createdAt).toLocaleString("vi-VN")
+              .d-flex.flex-wrap.gap-2
+                span(class=`badge ${st.class}`)= st.label
+                span.badge.badge-light= pm
+                span(class=`badge ${ps.class}`)= ps.label
             a.btn.btn-secondary.btn-sm(href="/orders") Quay lại đơn hàng
 
           h5.mb-3 Thông tin người nhận
@@ -35,6 +61,18 @@ block main
                 td Địa chỉ
                 td
                   b= order.userInfo.address
+              tr
+                td Phương thức thanh toán
+                td
+                  b= pm
+              tr
+                td Trạng thái thanh toán
+                td
+                  span(class=`badge ${ps.class}`)= ps.label
+              tr
+                td Trạng thái đơn hàng
+                td
+                  span(class=`badge ${st.class}`)= st.label
 
     .row
       .col-12

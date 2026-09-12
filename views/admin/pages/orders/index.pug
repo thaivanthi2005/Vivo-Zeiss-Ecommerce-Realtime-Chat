@@ -1,0 +1,114 @@
+extends ../../layouts/default.pug
+include ../../mixins/filterStatus.pug
+include ../../mixins/search.pug
+include ../../mixins/pagination.pug
+include ../../mixins/alert.pug
+
+block main
+  if(roles.permissions.includes("orders_view"))
+    .admin-page
+      +alert(success, error)
+      h1.page-title Quản lý đơn hàng
+
+      .card.mb-3
+        .card-header Bộ lọc và Tìm kiếm
+        .card-body
+          .row
+            .col-md-6.mb-2
+              if category
+                +filterStatus(category)
+            .col-md-6.mb-2
+              +search(keyword)
+
+      .card.mb-3
+        .card-header Danh sách đơn hàng
+        .card-body
+          .table-responsive
+            table.table.table-hover.table-sm.mb-0
+              thead.thead-dark
+                tr
+                  th.text-center STT
+                  th.text-center Mã đơn
+                  th Khách hàng
+                  th.text-center Tổng tiền
+                  th.text-center Thanh toán
+                  th.text-center Trạng thái TT
+                  th.text-center Trạng thái đơn
+                  th.text-center Ngày đặt
+                  th.text-center Hành động
+              tbody
+                if orders && orders.length > 0
+                  each order, index in orders
+                    -
+                      const statusMap = {
+                        pending: { label: "Chờ xác nhận", class: "badge-warning" },
+                        confirmed: { label: "Đã xác nhận", class: "badge-info" },
+                        shipping: { label: "Đang giao", class: "badge-primary" },
+                        delivered: { label: "Đã giao", class: "badge-success" },
+                        cancelled: { label: "Đã hủy", class: "badge-danger" }
+                      }
+                      const payStatusMap = {
+                        unpaid: { label: "Chưa thanh toán", class: "badge-secondary" },
+                        paid: { label: "Đã thanh toán", class: "badge-success" },
+                        failed: { label: "Thất bại", class: "badge-danger" },
+                        refunded: { label: "Hoàn tiền", class: "badge-dark" }
+                      }
+                      const payMethodMap = {
+                        cod: "COD",
+                        vnpay: "VNPay"
+                      }
+                      const st = statusMap[order.status] || { label: order.status || "—", class: "badge-light" }
+                      const ps = payStatusMap[order.paymentStatus] || { label: order.paymentStatus || "—", class: "badge-light" }
+                      const pm = payMethodMap[order.paymentMethod] || (order.paymentMethod || "—")
+                      const orderCode = order._id.toString().slice(-6).toUpperCase()
+
+                    tr
+                      td.text-center #{pagination ? (pagination.currentPage - 1) * pagination.limitItem + index + 1 : index + 1}
+                      td.text-center
+                        strong ##{orderCode}
+                      td
+                        if order.userInfo
+                          div
+                            strong= order.userInfo.fullName || "—"
+                          small.text-muted= order.userInfo.phone || ""
+                        else
+                          | —
+                      td.text-center.text-nowrap
+                        strong= (order.totalPrice != null ? order.totalPrice : 0) + " ₫"
+                      td.text-center
+                        span.badge.badge-light= pm
+                      td.text-center
+                        span(class=`badge ${ps.class}`)= ps.label
+                      td.text-center
+                        if(roles.permissions.includes("orders_edit"))
+                          form.d-inline(
+                            action=`${prefixAdmin}/orders/change-status/${order.id}?_method=PATCH`
+                            method="POST"
+                          )
+                            select.form-control.form-control-sm(
+                              name="status"
+                              onchange="this.form.submit()"
+                              style="min-width: 140px"
+                            )
+                              option(value="pending" selected=(order.status === "pending")) Chờ xác nhận
+                              option(value="confirmed" selected=(order.status === "confirmed")) Đã xác nhận
+                              option(value="shipping" selected=(order.status === "shipping")) Đang giao
+                              option(value="delivered" selected=(order.status === "delivered")) Đã giao
+                              option(value="cancelled" selected=(order.status === "cancelled")) Đã hủy
+                        else
+                          span(class=`badge ${st.class}`)= st.label
+                      td.text-center.text-nowrap
+                        if order.createdAt
+                          | #{moment(order.createdAt).format("DD/MM/YYYY HH:mm")}
+                        else
+                          | —
+                      td.text-center.text-nowrap
+                        a.btn.btn-info.btn-sm(
+                          href=`${prefixAdmin}/orders/detail/${order.id}`
+                        ) Chi tiết
+                else
+                  tr
+                    td.text-center.text-muted(colspan="9") Chưa có đơn hàng nào.
+
+      if pagination
+        +pagination(pagination)

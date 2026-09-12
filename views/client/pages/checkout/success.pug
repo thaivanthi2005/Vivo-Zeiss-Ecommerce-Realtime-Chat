@@ -4,6 +4,22 @@ include ../../mixins/alert.pug
 
 block main
   +alert(success, error)
+  -
+    const payMethodMap = {
+      cod: "Thanh toán khi nhận hàng (COD)",
+      vnpay: "VNPay"
+    }
+    const payStatusMap = {
+      unpaid: "Chưa thanh toán",
+      paid: "Đã thanh toán",
+      failed: "Thanh toán thất bại",
+      refunded: "Đã hoàn tiền"
+    }
+    const pm = payMethodMap[order.paymentMethod] || (order.paymentMethod || "COD")
+    const ps = payStatusMap[order.paymentStatus] || (order.paymentStatus || "—")
+    const isPaid = order.paymentStatus === "paid"
+    const isFailed = order.paymentStatus === "failed"
+
   .container.page-shell
     .row
       .col-12
@@ -11,8 +27,15 @@ block main
 
     .row
       .col-12
-        .success-banner
-          | Chúc mừng bạn đã đặt hàng thành công! Chúng tôi sẽ xử lý đơn hàng trong thời gian sớm nhất.
+        if isFailed
+          .success-banner(style="background:#f8d7da;color:#721c24")
+            | Thanh toán chưa thành công. Bạn có thể thử lại hoặc chọn COD.
+        else if isPaid
+          .success-banner
+            | Thanh toán thành công! Đơn hàng đang được xử lý.
+        else
+          .success-banner
+            | Chúc mừng bạn đã đặt hàng thành công! Chúng tôi sẽ xử lý đơn hàng trong thời gian sớm nhất.
 
     .row
       .col-12
@@ -32,6 +55,14 @@ block main
                 td Địa chỉ
                 td
                   b #{order.userInfo.address}
+              tr
+                td Phương thức thanh toán
+                td
+                  b= pm
+              tr
+                td Trạng thái thanh toán
+                td
+                  b= ps
 
     .row
       .col-12
@@ -52,16 +83,21 @@ block main
                   tr
                     td #{index + 1}
                     td
-                      img(
-                        src=item.productInfo.thumbnail
-                        alt=item.productInfo.title
-                        width="80"
-                      )
-                    td #{item.productInfo.title}
-                    td #{item.price}$
+                      if item.productInfo && item.productInfo.thumbnail
+                        img(
+                          src=item.productInfo.thumbnail
+                          alt=item.productInfo.title
+                          width="80"
+                        )
+                    td #{item.productInfo ? item.productInfo.title : "Sản phẩm đã xóa"}
+                    td #{item.pricenew} VNĐ
                     td #{item.quantity}
-                    td #{item.totalPrice}$
+                    td #{item.totalPrice} VNĐ
 
           if order.products.length > 0
             .checkout-summary
-              h3.order-total Tổng đơn hàng: #{order.totalPrice}$
+              h3.order-total Tổng đơn hàng: #{order.totalPrice} VNĐ
+
+          .mt-3.d-flex.flex-wrap.gap-2
+            a.btn.btn-outline-primary(href=`/orders/detail/${order._id}`) Xem đơn hàng
+            a.btn.btn-secondary(href="/products") Tiếp tục mua sắm

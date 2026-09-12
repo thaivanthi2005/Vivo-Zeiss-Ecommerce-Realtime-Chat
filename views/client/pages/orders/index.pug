@@ -13,13 +13,36 @@ block main
       .col-12
         if orders && orders.length > 0
           each order, index in orders
+            -
+              const statusMap = {
+                pending: { label: "Chờ xác nhận", class: "badge-warning" },
+                confirmed: { label: "Đã xác nhận", class: "badge-info" },
+                shipping: { label: "Đang giao", class: "badge-primary" },
+                delivered: { label: "Đã giao", class: "badge-success" },
+                cancelled: { label: "Đã hủy", class: "badge-danger" }
+              }
+              const payStatusMap = {
+                unpaid: { label: "Chưa thanh toán", class: "badge-secondary" },
+                paid: { label: "Đã thanh toán", class: "badge-success" },
+                failed: { label: "Thất bại", class: "badge-danger" },
+                refunded: { label: "Hoàn tiền", class: "badge-dark" }
+              }
+              const payMethodMap = { cod: "COD", vnpay: "VNPay" }
+              const st = statusMap[order.status] || { label: order.status || "—", class: "badge-light" }
+              const ps = payStatusMap[order.paymentStatus] || { label: order.paymentStatus || "—", class: "badge-light" }
+              const pm = payMethodMap[order.paymentMethod] || (order.paymentMethod || "—")
+
             .page-panel.mb-4
               .d-flex.justify-content-between.align-items-center.flex-wrap.gap-2.mb-3
                 div
                   h4.mb-1 Đơn hàng ##{order._id.toString().slice(-6).toUpperCase()}
-                  p.mb-0.text-muted
+                  p.mb-2.text-muted
                     | Ngày đặt: 
                     strong= new Date(order.createdAt).toLocaleString("vi-VN")
+                  .d-flex.flex-wrap.gap-2
+                    span(class=`badge ${st.class}`)= st.label
+                    span.badge.badge-light= pm
+                    span(class=`badge ${ps.class}`)= ps.label
                 a.btn.btn-outline-primary.btn-sm(href=`/orders/detail/${order._id}`) Xem chi tiết
 
               table.table.table-bordered.mb-3
