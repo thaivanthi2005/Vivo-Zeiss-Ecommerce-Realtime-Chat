@@ -1,6 +1,4 @@
 extends ../../layouts/default.pug
-include ../../mixins/filterStatus.pug
-include ../../mixins/search.pug
 include ../../mixins/pagination.pug
 include ../../mixins/alert.pug
 
@@ -11,14 +9,44 @@ block main
       h1.page-title Quản lý đơn hàng
 
       .card.mb-3
-        .card-header Bộ lọc và Tìm kiếm
+        .card-header Bộ lọc đơn hàng
         .card-body
-          .row
-            .col-md-6.mb-2
-              if category
-                +filterStatus(category)
-            .col-md-6.mb-2
-              +search(keyword)
+          form(method="GET" action=`${prefixAdmin}/orders`)
+            .row
+              .col-md-3.mb-2
+                label.small Trạng thái đơn
+                select.form-control.form-control-sm(name="status")
+                  option(value="") Tất cả
+                  option(value="pending" selected=(query && query.status === "pending")) Chờ xác nhận
+                  option(value="confirmed" selected=(query && query.status === "confirmed")) Đã xác nhận
+                  option(value="shipping" selected=(query && query.status === "shipping")) Đang giao
+                  option(value="delivered" selected=(query && query.status === "delivered")) Đã giao
+                  option(value="cancelled" selected=(query && query.status === "cancelled")) Đã hủy
+              .col-md-3.mb-2
+                label.small Thanh toán
+                select.form-control.form-control-sm(name="paymentStatus")
+                  option(value="") Tất cả
+                  option(value="unpaid" selected=(query && query.paymentStatus === "unpaid")) Chưa thanh toán
+                  option(value="paid" selected=(query && query.paymentStatus === "paid")) Đã thanh toán
+                  option(value="failed" selected=(query && query.paymentStatus === "failed")) Thất bại
+                  option(value="refunded" selected=(query && query.paymentStatus === "refunded")) Hoàn tiền
+              .col-md-3.mb-2
+                label.small Phương thức
+                select.form-control.form-control-sm(name="paymentMethod")
+                  option(value="") Tất cả
+                  option(value="cod" selected=(query && query.paymentMethod === "cod")) COD
+                  option(value="vnpay" selected=(query && query.paymentMethod === "vnpay")) VNPay
+              .col-md-3.mb-2
+                label.small Tìm (tên / SĐT)
+                .input-group.input-group-sm
+                  input.form-control(
+                    type="text"
+                    name="keyword"
+                    placeholder="Nhập từ khóa"
+                    value=(query && query.keyword) || ""
+                  )
+                  .input-group-append
+                    button.btn.btn-success(type="submit") Lọc
 
       .card.mb-3
         .card-header Danh sách đơn hàng

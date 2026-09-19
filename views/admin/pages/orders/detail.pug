@@ -92,12 +92,12 @@ block main
                         code= order.vnpayTxnRef
 
               if(roles.permissions.includes("orders_edit"))
-                form(
+                form.mb-3(
                   action=`${prefixAdmin}/orders/change-status/${order.id}?_method=PATCH`
                   method="POST"
                 )
                   .form-group.mb-2
-                    label(for="order-status") Cập nhật trạng thái
+                    label(for="order-status") Cập nhật trạng thái đơn
                     select#order-status.form-control(name="status")
                       option(value="pending" selected=(order.status === "pending")) Chờ xác nhận
                       option(value="confirmed" selected=(order.status === "confirmed")) Đã xác nhận
@@ -105,6 +105,19 @@ block main
                       option(value="delivered" selected=(order.status === "delivered")) Đã giao
                       option(value="cancelled" selected=(order.status === "cancelled")) Đã hủy
                   button.btn.btn-primary.btn-sm(type="submit") Lưu trạng thái
+
+                form(
+                  action=`${prefixAdmin}/orders/change-payment-status/${order.id}?_method=PATCH`
+                  method="POST"
+                )
+                  .form-group.mb-2
+                    label(for="payment-status") Cập nhật trạng thái thanh toán
+                    select#payment-status.form-control(name="paymentStatus")
+                      option(value="unpaid" selected=(order.paymentStatus === "unpaid")) Chưa thanh toán
+                      option(value="paid" selected=(order.paymentStatus === "paid")) Đã thanh toán
+                      option(value="failed" selected=(order.paymentStatus === "failed")) Thất bại
+                      option(value="refunded" selected=(order.paymentStatus === "refunded")) Hoàn tiền
+                  button.btn.btn-outline-primary.btn-sm(type="submit") Lưu thanh toán
 
       .card.mb-3
         .card-header Sản phẩm trong đơn
