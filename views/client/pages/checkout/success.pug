@@ -5,31 +5,41 @@ include ../../mixins/alert.pug
 block main
   +alert(success, error)
   -
+    const statusMap = {
+      pending: { label: "Chờ xác nhận", class: "badge-warning" },
+      confirmed: { label: "Đã xác nhận", class: "badge-info" },
+      shipping: { label: "Đang giao", class: "badge-primary" },
+      delivered: { label: "Đã giao", class: "badge-success" },
+      cancelled: { label: "Đã hủy", class: "badge-danger" }
+    }
     const payMethodMap = {
       cod: "Thanh toán khi nhận hàng (COD)",
       vnpay: "VNPay"
     }
     const payStatusMap = {
-      unpaid: "Chưa thanh toán",
-      paid: "Đã thanh toán",
-      failed: "Thanh toán thất bại",
-      refunded: "Đã hoàn tiền"
+      unpaid: { label: "Chưa thanh toán", class: "badge-secondary" },
+      paid: { label: "Đã thanh toán", class: "badge-success" },
+      failed: { label: "Thanh toán thất bại", class: "badge-danger" },
+      refunded: { label: "Đã hoàn tiền", class: "badge-dark" }
     }
+    const st = statusMap[order.status] || { label: order.status || "—", class: "badge-light" }
     const pm = payMethodMap[order.paymentMethod] || (order.paymentMethod || "COD")
-    const ps = payStatusMap[order.paymentStatus] || (order.paymentStatus || "—")
+    const ps = payStatusMap[order.paymentStatus] || { label: order.paymentStatus || "—", class: "badge-light" }
     const isPaid = order.paymentStatus === "paid"
     const isFailed = order.paymentStatus === "failed"
+    const orderCode = order._id.toString().slice(-6).toUpperCase()
+    const pageTitle = isFailed ? "THANH TOÁN CHƯA THÀNH CÔNG" : (isPaid ? "THANH TOÁN THÀNH CÔNG" : "ĐẶT HÀNG THÀNH CÔNG")
 
   .container.page-shell
     .row
       .col-12
-        +box-head("ĐẶT HÀNG THÀNH CÔNG")
+        +box-head(pageTitle)
 
     .row
       .col-12
         if isFailed
           .success-banner(style="background:#f8d7da;color:#721c24")
-            | Thanh toán chưa thành công. Bạn có thể thử lại hoặc chọn COD.
+            | Thanh toán chưa thành công. Bạn có thể mở lại đơn hàng hoặc đặt lại bằng COD.
         else if isPaid
           .success-banner
             | Thanh toán thành công! Đơn hàng đang được xử lý.
@@ -40,21 +50,25 @@ block main
     .row
       .col-12
         .page-panel.mb-4
+          .d-flex.flex-wrap.gap-2.mb-3
+            span.badge.badge-light Mã đơn: ##{orderCode}
+            span(class=`badge ${st.class}`)= st.label
+            span(class=`badge ${ps.class}`)= ps.label
           h4.mb-3 Thông tin cá nhân
           table.table.table-bordered
             tbody
               tr
                 td Họ tên
                 td
-                  b #{order.userInfo.fullName}
+                  b= order.userInfo ? order.userInfo.fullName : "—"
               tr
                 td Số điện thoại
                 td
-                  b #{order.userInfo.phone}
+                  b= order.userInfo ? order.userInfo.phone : "—"
               tr
                 td Địa chỉ
                 td
-                  b #{order.userInfo.address}
+                  b= order.userInfo ? order.userInfo.address : "—"
               tr
                 td Phương thức thanh toán
                 td
@@ -62,7 +76,16 @@ block main
               tr
                 td Trạng thái thanh toán
                 td
-                  b= ps
+                  span(class=`badge ${ps.class}`)= ps.label
+              tr
+                td Trạng thái đơn hàng
+                td
+                  span(class=`badge ${st.class}`)= st.label
+              if order.vnpayTxnRef
+                tr
+                  td Mã giao dịch VNPay
+                  td
+                    code= order.vnpayTxnRef
 
     .row
       .col-12

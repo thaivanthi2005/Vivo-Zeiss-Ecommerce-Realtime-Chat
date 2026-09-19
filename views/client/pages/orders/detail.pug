@@ -25,6 +25,9 @@ block main
     const st = statusMap[order.status] || { label: order.status || "—", class: "badge-light" }
     const ps = payStatusMap[order.paymentStatus] || { label: order.paymentStatus || "—", class: "badge-light" }
     const pm = payMethodMap[order.paymentMethod] || (order.paymentMethod || "—")
+    const isPaid = order.paymentStatus === "paid"
+    const isFailed = order.paymentStatus === "failed"
+    const isUnpaidVnpay = order.paymentMethod === "vnpay" && order.paymentStatus === "unpaid"
 
   .container.page-shell
     .row
@@ -33,6 +36,16 @@ block main
 
     .row
       .col-12
+        if isFailed
+          .success-banner.mb-3(style="background:#f8d7da;color:#721c24")
+            | Thanh toán thất bại. Liên hệ shop hoặc đặt đơn mới bằng COD.
+        else if isUnpaidVnpay
+          .success-banner.mb-3(style="background:#fff3cd;color:#856404")
+            | Đơn VNPay chưa thanh toán. Hoàn tất thanh toán hoặc chọn COD khi đặt lại.
+        else if isPaid
+          .success-banner.mb-3
+            | Đơn hàng đã thanh toán thành công.
+
         .page-panel.mb-4
           .d-flex.justify-content-between.align-items-center.flex-wrap.gap-2.mb-3
             div
@@ -52,15 +65,15 @@ block main
               tr
                 td Họ tên
                 td
-                  b= order.userInfo.fullName
+                  b= order.userInfo ? order.userInfo.fullName : "—"
               tr
                 td Số điện thoại
                 td
-                  b= order.userInfo.phone
+                  b= order.userInfo ? order.userInfo.phone : "—"
               tr
                 td Địa chỉ
                 td
-                  b= order.userInfo.address
+                  b= order.userInfo ? order.userInfo.address : "—"
               tr
                 td Phương thức thanh toán
                 td
@@ -73,6 +86,11 @@ block main
                 td Trạng thái đơn hàng
                 td
                   span(class=`badge ${st.class}`)= st.label
+              if order.vnpayTxnRef
+                tr
+                  td Mã giao dịch VNPay
+                  td
+                    code= order.vnpayTxnRef
 
     .row
       .col-12
