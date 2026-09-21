@@ -37,11 +37,18 @@ module.exports.index = async (req, res) => {
 //[POST] /checkout/order
 module.exports.order = async (req, res) => {
   const cartId = req.cookies.cartId;
-  const userInfo = req.body;
+  const { fullName, phone, address, paymentMethod } = req.body;
+  const userInfo = { fullName, phone, address };
+  const method = paymentMethod === "vnpay" ? "vnpay" : "cod";
 
   const cart = await Cart.findOne({
     _id: cartId,
   });
+  if (!cart || !cart.products || cart.products.length === 0) {
+    return res.redirect("/cart");
+  }
+
+  let totalPrice = 0;
   const products = [];
   for (const product of cart.products) {
     const objectProduct = {
@@ -54,19 +61,36 @@ module.exports.order = async (req, res) => {
       _id: product.product_id,
     }).select("price discountPercentage");
 
+    if (!productInfo) {
+      continue;
+    }
+
     objectProduct.price = productInfo.price;
     objectProduct.discountPercentage = productInfo.discountPercentage;
+
+    const pricenew = Math.round(
+      (objectProduct.price * (100 - objectProduct.discountPercentage)) / 100,
+    );
+    totalPrice += pricenew * objectProduct.quantity;
 
     products.push(objectProduct);
   }
 
+  if (products.length === 0) {
+    return res.redirect("/cart");
+  }
+
   const orderInfo = {
     cart_id: cartId,
+    user_id: res.locals.user.id,
     userInfo: userInfo,
     products: products,
+    paymentMethod: method,
+    paymentStatus: "unpaid",
+    totalPrice: totalPrice,
   };
   const order = new Order(orderInfo);
-  order.save();
+  await order.save();
   await Cart.updateOne(
     {
       _id: cartId,
