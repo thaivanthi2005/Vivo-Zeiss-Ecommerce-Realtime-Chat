@@ -25,7 +25,7 @@ Dùng tài khoản dưới đây để trải nghiệm. **Không cần đăng k�
 | **Email**         | `demo1@gmail.com` |
 | **Mật khẩu**      | `test`            |
 
-**Có thể test:** xem / tìm sản phẩm, giỏ hàng → checkout → đơn hàng, cập nhật hồ sơ / avatar, quên mật khẩu (OTP email), chat realtime, kết bạn, tạo phòng chat.
+**Có thể test:** xem / tìm sản phẩm, giỏ hàng → checkout (COD / **VNPay sandbox**) → đơn hàng, cập nhật hồ sơ / avatar, quên mật khẩu (OTP email), chat realtime, kết bạn, tạo phòng chat.
 
 ### Quản trị viên (Admin)
 
@@ -46,6 +46,7 @@ Dùng tài khoản dưới đây để trải nghiệm. **Không cần đăng k�
 - Trang chủ: sản phẩm nổi bật / mới nhất
 - Danh sách sản phẩm, lọc theo danh mục (slug), chi tiết sản phẩm, tìm kiếm
 - Giỏ hàng, checkout, lịch sử đơn hàng _(cần đăng nhập)_
+- Thanh toán: **COD** hoặc **VNPay** (sandbox) — tạo đơn, redirect cổng thanh toán, Return URL cập nhật `paid` / `failed`
 - Đăng ký / đăng nhập / đăng xuất
 - Quên mật khẩu: gửi OTP qua email → xác thực → đặt lại mật khẩu
 - Hồ sơ cá nhân, đổi avatar (upload Cloudinary)
@@ -77,8 +78,9 @@ Dùng tài khoản dưới đây để trải nghiệm. **Không cần đăng k�
 | Realtime       | Socket.IO                                                                                                    |
 | Upload ảnh     | Multer (memory) → Cloudinary (`streamifier`)                                                                 |
 | Email (OTP)    | Nodemailer (Gmail App Password)                                                                              |
+| Thanh toán     | **VNPay** (HMAC-SHA512, sandbox) — helper `helper/vnpay.js`                                                  |
 | Editor         | TinyMCE (serve từ `node_modules/tinymce`)                                                                    |
-| Khác           | method-override, moment, mongoose-slug-updater                                                               |
+| Khác           | method-override, moment, qs, mongoose-slug-updater                                                           |
 | Dev            | Nodemon                                                                                                      |
 | Deploy         | Docker / Docker Compose, Vercel (`vercel.json`)                                                              |
 
@@ -89,6 +91,16 @@ Dùng tài khoản dưới đây để trải nghiệm. **Không cần đăng k�
 3. Logout → `clearCookie("token")` (client còn clear `cartId`).
 4. Quên mật khẩu: sau khi OTP hợp lệ cũng cấp JWT vào cookie để vào trang reset.
 
+### Thanh toán VNPay hoạt động thế nào
+
+1. User chọn **VNPay** ở `/checkout` → tạo `Order` (`paymentMethod: vnpay`, `paymentStatus: unpaid`, có `totalPrice`).
+2. Server gọi `createPaymentUrl` (`helper/vnpay.js`) — `vnp_TxnRef` = `order._id`, `vnp_Amount` = `totalPrice * 100`, ký HMAC-SHA512.
+3. Redirect trình duyệt sang cổng sandbox VNPay.
+4. Sau thanh toán, VNPay redirect về `VNP_RETURN_URL` → verify chữ ký → cập nhật `paid` / `failed` → (nếu paid) xóa giỏ → `/checkout/success/:id`.
+5. Chọn **COD**: lưu đơn + xóa giỏ ngay → trang success (không qua cổng VNPay).
+
+> Sandbox: đăng ký tại [sandbox.vnpayment.vn](https://sandbox.vnpayment.vn). IPN (`VNP_IPN_URL`) nên có trên môi trường public; local chủ yếu test qua Return URL.
+
 ---
 
 ## Cấu trúc thư mục
@@ -97,7 +109,7 @@ Dùng tài khoản dưới đây để trải nghiệm. **Không cần đăng k�
 begin/
 ├── config/           # DB, prefix admin (/admin)
 ├── controller/       # Logic client & admin
-├── helper/           # JWT, Cloudinary, mail, pagination, search...
+├── helper/           # JWT, Cloudinary, mail, VNPay, pagination, search...
 ├── middleware/       # Auth JWT, cart, category, upload, validate...
 ├── models/           # Mongoose schemas
 ├── public/           # CSS, JS, ảnh tĩnh
@@ -121,6 +133,7 @@ begin/
 - MongoDB (local hoặc Atlas)
 - Tài khoản Cloudinary (upload ảnh)
 - Gmail App Password (OTP quên mật khẩu)
+- Tài khoản **VNPay sandbox** (TmnCode + HashSecret) nếu test thanh toán online
 
 ### Các bước
 
@@ -155,6 +168,13 @@ api_secret=<cloudinary_api_secret>
 EMAIL_USER=<gmail_address>
 EMAIL_PASS=<gmail_app_password>
 JWT_SECRET=<your_jwt_secret>
+
+# VNPay (sandbox)
+VNP_TMN_CODE=<vnpay_tmn_code>
+VNP_HASH_SECRET=<vnpay_hash_secret>
+VNP_URL=https://sandbox.vnpayment.vn/paymentv2/vpcpay.html
+VNP_RETURN_URL=http://localhost:3000/checkout/vnpay_return
+VNP_IPN_URL=http://localhost:3000/checkout/vnpay_ipn
 ```
 
 | Biến                                    | Dùng cho                                            |
@@ -164,6 +184,10 @@ JWT_SECRET=<your_jwt_secret>
 | `cloud_name` / `api_key` / `api_secret` | Cloudinary                                          |
 | `EMAIL_USER` / `EMAIL_PASS`             | Nodemailer gửi OTP                                  |
 | `JWT_SECRET`                            | Ký & verify JWT (bắt buộc cho login client & admin) |
+| `VNP_TMN_CODE` / `VNP_HASH_SECRET`      | Merchant code + secret ký HMAC VNPay                |
+| `VNP_URL`                               | URL cổng thanh toán (sandbox / production)          |
+| `VNP_RETURN_URL`                        | Browser redirect sau thanh toán                     |
+| `VNP_IPN_URL`                           | Server callback IPN (nên dùng URL public)           |
 
 ---
 
@@ -189,7 +213,10 @@ docker compose up -d --build
 | `/products/detail/:id`  | Chi tiết sản phẩm                  |
 | `/search`               | Tìm kiếm                           |
 | `/cart`                 | Giỏ hàng _(JWT)_                   |
-| `/checkout`             | Thanh toán _(JWT)_                 |
+| `/checkout`             | Thanh toán COD / VNPay _(JWT)_     |
+| `/checkout/order`       | Tạo đơn (POST) _(JWT)_             |
+| `/checkout/vnpay_return`| VNPay Return URL — cập nhật paid/failed |
+| `/checkout/success/:id` | Đặt hàng / thanh toán thành công _(JWT)_ |
 | `/orders`               | Đơn hàng _(JWT)_                   |
 | `/user/login`           | Đăng nhập                          |
 | `/user/register`        | Đăng ký                            |
@@ -230,6 +257,7 @@ docker compose up -d --build
 - [Socket.IO](https://socket.io/docs/v4/)
 - [Cloudinary](https://cloudinary.com/documentation)
 - [Nodemailer](https://nodemailer.com/)
+- [VNPay Sandbox / Docs](https://sandbox.vnpayment.vn/apis/docs/huong-dan-tich-hop/)
 
 ---
 
