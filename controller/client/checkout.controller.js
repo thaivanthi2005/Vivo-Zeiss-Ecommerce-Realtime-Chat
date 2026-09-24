@@ -141,3 +141,46 @@ module.exports.success = async (req, res) => {
     order: order,
   });
 };
+
+
+//[GET] //vnpay_return
+
+module.exports.vnpayReturn = async (req,res) =>{
+  const result = vnpayHelper.verifyReturn(req.query);
+  if (!result.isValid) {
+      return res.redirect("/cart");
+    }
+
+    const order = await Order.findOne({ _id: result.txnRef });
+    if (!order) {
+      return res.redirect("/cart");
+    }
+
+    if (order.paymentStatus === "paid") {
+      return res.redirect(`/checkout/success/${order.id}`);
+    }
+
+    if (Number(result.amount) !== Number(order.totalPrice)) {
+      order.paymentStatus = "failed";
+      await order.save();
+      return res.redirect(`/checkout/success/${order.id}`);
+    }
+
+
+    if (result.responseCode === "00") {
+      order.paymentStatus = "paid";
+      order.vnpayTxnRef = result.txnRef;
+      await order.save();
+
+      if (order.cart_id) {
+        await Cart.updateOne(
+          { _id: order.cart_id },
+          { products: [] }
+        );
+      }
+    } else {
+      order.paymentStatus = "failed";
+      await order.save();
+    }
+    return res.redirect(`/checkout/success/${order.id}`);
+};
