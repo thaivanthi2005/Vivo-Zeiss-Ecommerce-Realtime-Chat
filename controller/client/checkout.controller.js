@@ -3,6 +3,8 @@ const Category = require("../../models/category.model");
 const Cart = require("../../models/cart.model");
 const Order = require("../../models/order.model");
 const productsHelper = require("../../helper/pricenew");
+const vnpayHelper = require("../../helper/vnpay")
+
 //[GET] /checkout
 module.exports.index = async (req, res) => {
   const cart = await Cart.findOne({
@@ -80,26 +82,41 @@ module.exports.order = async (req, res) => {
     return res.redirect("/cart");
   }
 
-  const orderInfo = {
-    cart_id: cartId,
-    user_id: res.locals.user.id,
-    userInfo: userInfo,
-    products: products,
-    paymentMethod: method,
-    paymentStatus: "unpaid",
-    totalPrice: totalPrice,
-  };
-  const order = new Order(orderInfo);
+  const orderData = {
+  cart_id: cartId,
+  user_id: res.locals.user.id,
+  userInfo: userInfo,
+  products: products,
+  paymentMethod: method,
+  paymentStatus: "unpaid",
+  totalPrice: totalPrice,
+};
+
+try {
+  const order = new Order(orderData);
   await order.save();
-  await Cart.updateOne(
-    {
-      _id: cartId,
-    },
-    {
-      products: [],
-    },
-  );
-  res.redirect(`/checkout/success/${order.id}`);
+
+  if (order.paymentMethod === "cod") {
+    await Cart.updateOne({ _id: cartId }, { products: [] });
+    return res.redirect(`/checkout/success/${order.id}`);
+  }
+
+  if (order.paymentMethod === "vnpay") {
+    const paymentUrl = vnpayHelper.createPaymentUrl(
+      order._id,
+      order.totalPrice,
+      req.ip,
+      `Thanh toan don hang ${order._id}`
+    );
+    return res.redirect(paymentUrl);
+  }
+
+  return res.status(400).send("Phuong thuc thanh toan khong hop le");
+} catch (err) {
+  console.error("Checkout error:", err);
+  return res.status(500).send("Da xay ra loi khi tao don hang");
+}
+  
 };
 
 //[GET]/success/:orderID

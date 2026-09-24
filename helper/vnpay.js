@@ -23,7 +23,7 @@ const  sortObject = (obj) => {
  * Tạo URL thanh toán — dựa trên demo create_payment_url của VNPay
  * Đổi: nhận tham số thay vì req/res; dùng .env; amount ; return URL 
  */
-module.exports.createPaymentUrl = ({ orderId, amount, ipAddr, orderInfo }) => {
+module.exports.createPaymentUrl = ( orderId, amount, ipAddr, orderInfo ) => {
   process.env.TZ = "Asia/Ho_Chi_Minh";
 
   let date = new Date();
