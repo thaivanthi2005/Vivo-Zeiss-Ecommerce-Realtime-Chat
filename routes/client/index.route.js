@@ -13,6 +13,8 @@ const chat_route = require("./chat.route");
 const middleware_user = require("../../middleware/client/user.middleware");
 const middleware_auth = require("../../middleware/client/auth.middleware");
 const middleware_settings = require("../../middleware/client/settings.middlware");
+
+const controller = require("../../controller/client/checkout.controller");
 module.exports = (app) => {
   app.use(Middleware.categoryMiddleware);
   app.use(cart_middleware.checkcart);
@@ -28,4 +30,8 @@ module.exports = (app) => {
   app.use("/chat", middleware_auth.auth_middleware, chat_route);
   app.use("/users", middleware_auth.auth_middleware, users_route);
   app.use("/rooms-chat", middleware_auth.auth_middleware, rooms_chat);
+  app.get(
+      "/checkout/vnpay_return",
+      controller.vnpayReturn
+    );
 };

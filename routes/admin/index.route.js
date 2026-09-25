@@ -27,5 +27,4 @@ module.exports = (app) => {
   app.use(PATH_ADMIN + "/my-account", middleware.auth_middleware, my_account);
   app.use(PATH_ADMIN + "/settings", middleware.auth_middleware, settings);
   app.use(PATH_ADMIN + "/orders", middleware.auth_middleware, orders_route);
-
 };
