@@ -4,7 +4,15 @@
   "main": "index.js",
   "scripts": {
     "start": "nodemon --inspect index.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "jest",
+    "test:watch": "jest --watch"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "testMatch": [
+      "**/__tests__/**/*.test.js",
+      "**/?(*.)+(spec|test).js"
+    ]
   },
   "author": "",
   "license": "ISC",
@@ -33,6 +41,7 @@
     "tinymce": "^8.3.2"
   },
   "devDependencies": {
+    "jest": "^30.5.2",
     "nodemon": "^3.1.11"
   }
 }
