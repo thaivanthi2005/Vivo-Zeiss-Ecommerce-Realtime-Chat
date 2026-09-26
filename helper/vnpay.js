@@ -2,7 +2,6 @@ const crypto = require("crypto");
 const qs = require("qs");
 const moment = require("moment");
 
-// Giữ đúng kiểu sortObject demo VNPay
 const  sortObject = (obj) => {
   let sorted = {};
   let str = [];
@@ -19,10 +18,7 @@ const  sortObject = (obj) => {
   return sorted;
 }
 
-/**
- * Tạo URL thanh toán — dựa trên demo create_payment_url của VNPay
- * Đổi: nhận tham số thay vì req/res; dùng .env; amount ; return URL 
- */
+
 module.exports.createPaymentUrl = ( orderId, amount, ipAddr, orderInfo ) => {
   process.env.TZ = "Asia/Ho_Chi_Minh";
 
@@ -53,18 +49,16 @@ module.exports.createPaymentUrl = ( orderId, amount, ipAddr, orderInfo ) => {
 
   vnp_Params = sortObject(vnp_Params);
 
-  let signData = qs.stringify(vnp_Params, { encode: false });
-  let hmac = crypto.createHmac("sha512", secretKey);
-  let signed = hmac.update(Buffer.from(signData, "utf-8")).digest("hex");
-  vnp_Params["vnp_SecureHash"] = signed;
-  vnpUrl += "?" + qs.stringify(vnp_Params, { encode: false });
+  let signData = qs.stringify(vnp_Params, { encode: false }); // chuyển chuỗi vnparams sang dạng key=value và encode:false thì ko mã hóa URL (yêu cầu này vì vnpay yêu cầu chuỗi thô ko mã hóa các kí tự đặc biệt)
+  let hmac = crypto.createHmac("sha512", secretKey); //  tạo hàm mã hóa dữ liệu theo thuật toán sha512 theo secretKey mà vnpay cấp
+  let signed = hmac.update(Buffer.from(signData, "utf-8")).digest("hex"); //thêm vào hàm mã háo dũ liệu ( chuyển chuỗi vừa chuyển sang utf8 (mã hóa kí tự thành chuỗi byte) và sau đó xuất ra chuỗi ksi tự (hex) CHUỖI VÀ SỐ)
+  vnp_Params["vnp_SecureHash"] = signed; //gán chữ kí vào vnp_SecureHash
+  vnpUrl += "?" + qs.stringify(vnp_Params, { encode: false }); // nối toàn lại với nhau để làm URL chuyển đến tab thanh toán 
 
   return vnpUrl;
 };
 
-/**
- * Verify Return/IPN — dựa trên demo VNPay
- */
+
 module.exports.verifyReturn = (query) => {
   let vnp_Params = { ...query };
   let secureHash = vnp_Params["vnp_SecureHash"];
@@ -74,9 +68,9 @@ module.exports.verifyReturn = (query) => {
 
   vnp_Params = sortObject(vnp_Params);
   let secretKey = process.env.VNP_HASH_SECRET;
-  let signData = qs.stringify(vnp_Params, { encode: false });
-  let hmac = crypto.createHmac("sha512", secretKey);
-  let signed = hmac.update(Buffer.from(signData, "utf-8")).digest("hex");
+  let signData = qs.stringify(vnp_Params, { encode: false }); // đây cũng là chuyển vnparam sang dạng key value
+  let hmac = crypto.createHmac("sha512", secretKey); // mã hóa dùng thuật toán Sha512
+  let signed = hmac.update(Buffer.from(signData, "utf-8")).digest("hex"); // tạo chữ kí chuyển về bye cho signdata và xuất ra dạng chữ số hex
 
   let isValid =
     String(secureHash || "").toLowerCase() === String(signed).toLowerCase();
