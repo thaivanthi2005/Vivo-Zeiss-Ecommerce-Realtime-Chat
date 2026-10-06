@@ -62,11 +62,16 @@ route(app);
 route_admin(app);
 
 database.connect();
+app.get('/health', (req, res) => {
+     res.status(200).json({ status: 'ok', uptime: process.uptime() });
+   });
+
 app.get("/{*path}", (req, res) => {
   res.status(404).render("client/pages/errors/404", {
     pagetitle: "404 Not Found",
   });
 });
+
 server.listen(port, () => {
   console.log("kết nối oke");
 });
