@@ -1,4 +1,8 @@
 node_modules
-.env
+npm-debug.log
 .git
-*.log
+.env
+.env.*
+coverage
+*.md
+.vscode
