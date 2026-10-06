@@ -67,6 +67,9 @@ app.get("/{*path}", (req, res) => {
     pagetitle: "404 Not Found",
   });
 });
+app.get('/health', (req, res) => {
+     res.status(200).json({ status: 'ok', uptime: process.uptime() });
+   });
 server.listen(port, () => {
   console.log("kết nối oke");
 });
