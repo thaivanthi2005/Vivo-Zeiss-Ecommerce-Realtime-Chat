@@ -1,12 +1,13 @@
-version: "3.8"
 services:
-  app:
+  api:
     build: .
-    ports:
-      - "3000:3000"
-    env_file:
-      - .env
-    volumes:
-      - .:/app
-      - /app/node_modules
     restart: unless-stopped
+    ports:
+      - "127.0.0.1:3000:3000"
+    env_file: [.env]
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3000/health || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 15s
